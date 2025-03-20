@@ -5,10 +5,13 @@ import {
   Dashboard,
   Orders,
   Menu,
-  TableOrders,
+  Tableqrcodes,
   Staff,
   Reports,
-  CustomerMenu
+  CustomerMenu,
+  KitchenStaff,
+  Waiter,
+  Management
 } from './pages'
 
 function App() {
@@ -20,10 +23,13 @@ function App() {
       <Route path="/" element={<Dashboard />} />
       <Route path="/orders" element={<Orders />} />
       <Route path="/menu" element={<Menu />} />
-      <Route path="/table-orders" element={<TableOrders />} />
+      <Route path="/Tableqrcodes" element={<Tableqrcodes />} />
       <Route path="/Staff" element={<Staff />} />
       <Route path="/Reports" element={<Reports />} />
       <Route path="/customermenu" element={<CustomerMenu />} />
+      <Route path="/kitchenstaff" element={<KitchenStaff />} />
+      <Route path="/waiter" element={<Waiter />} />
+      <Route path="/management" element={<Management />} />
     </Routes>
   </Router>
   )

@@ -29,6 +29,15 @@ const Sidebar = () => {
             </li>
             <li>
               <Link
+                to="/Management"
+                className="flex items-center text-gray-700 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition duration-300"
+              >
+                <span className="mr-2">🪑</span>
+                Table Manager
+              </Link>
+            </li>
+            <li>
+              <Link
                 to="/menu"
                 className="flex items-center text-gray-700 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition duration-300"
               >
@@ -38,11 +47,11 @@ const Sidebar = () => {
             </li>
             <li>
               <Link
-                to="/table-orders"
+                to="/Tableqrcodes"
                 className="flex items-center text-gray-700 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition duration-300"
               >
                 <span className="mr-2">🍴</span>
-                Table Management
+                Table Qr codes
 
               </Link>
             </li>

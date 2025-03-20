@@ -12,6 +12,8 @@
   "dependencies": {
     "@react-three/fiber": "^9.1.0",
     "@tailwindcss/vite": "^4.0.14",
+    "axios": "^1.8.3",
+    "cors": "^2.8.5",
     "qrcode.react": "^4.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

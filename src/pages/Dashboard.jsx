@@ -33,7 +33,7 @@ const Dashboard = () => {
             <p className="text-sm text-gray-500">+12% from last month</p>
           </div>
 
-          {/* Revenue */}
+          {/* Revenue */} 
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold text-gray-700">Revenue</h3>
             <p className="text-3xl font-bold text-orange-600">$12,345</p>
