@@ -2,10 +2,17 @@ import Menu from "../models/Menu.modal.js";
 
 // Get all menu items
 export const getMenuItems = async (req, res, next) => {
+  console.log('getMenuItems called!');
   try {
+    console.log('Inside try block');
     const menuItems = await Menu.find().populate("restaurantId");
+    console.log('Menu Items fetched:', menuItems);
+    console.log('Sending JSON response');
     res.json(menuItems);
+    console.log('JSON response sent');
   } catch (error) {
+    console.error('Error in getMenuItems:', error);
+    console.log('Calling next(error)');
     next(error);
   }
 };
