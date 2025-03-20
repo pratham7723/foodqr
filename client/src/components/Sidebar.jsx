@@ -11,7 +11,7 @@ const Sidebar = () => {
           <ul className="space-y-4">
             <li>
               <Link
-                to="/"
+                to="/dashboard"
                 className="flex items-center text-gray-700 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition duration-300"
               >
                 <span className="mr-2">📊</span>
