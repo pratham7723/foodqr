@@ -1,9 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Sidebar = () => {
+const Sidebar = ({ disabled }) => {
   return (
-    <div className="bg-white w-64 p-6 shadow-lg flex flex-col justify-between h-screen">
+    <div
+      className={`bg-white w-64 p-6 shadow-lg flex flex-col justify-between h-screen ${
+        disabled ? "pointer-events-none opacity-50" : ""
+      }`}
+    >
       {/* Logo and Navigation Links */}
       <div>
         <h1 className="text-2xl font-bold text-gray-800 mb-8">FlavorFusion</h1>
@@ -51,8 +55,7 @@ const Sidebar = () => {
                 className="flex items-center text-gray-700 hover:text-orange-600 hover:bg-orange-50 p-2 rounded-lg transition duration-300"
               >
                 <span className="mr-2">🍴</span>
-                Table Qr codes
-
+                Table QR Codes
               </Link>
             </li>
             <li>
