@@ -1,24 +1,21 @@
 import mongoose from "mongoose";
+import bcrypt from "bcrypt";
 
 const userSchema = new mongoose.Schema(
   {
-    auth0Id: {
-      type: String,
-      required: true,
-      unique: true,
-    },
     name: {
       type: String,
       required: true,
-    },
-    picture: {
-      type: String,
     },
     email: {
       type: String,
       required: true,
       unique: true,
       match: [/^\S+@\S+\.\S+$/, "Please enter a valid email address"],
+    },
+    password: {
+      type: String,
+      required: true,
     },
     phone: {
       type: String,
@@ -32,13 +29,25 @@ const userSchema = new mongoose.Schema(
     restaurant: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Restaurant",
-      default: null, // Null for owners who haven't created a restaurant yet
+      default: null,
     },
   },
   {
     timestamps: true,
   }
 );
+
+// Hash the password before saving the user
+userSchema.pre("save", async function (next) {
+  if (!this.isModified("password")) return next();
+  this.password = await bcrypt.hash(this.password, 10); // Hash the password
+  next();
+});
+
+// Method to compare passwords
+userSchema.methods.comparePassword = async function (candidatePassword) {
+  return await bcrypt.compare(candidatePassword, this.password);
+};
 
 const User = mongoose.model("User", userSchema);
 export default User;
