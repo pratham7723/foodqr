@@ -1,42 +1,40 @@
 import express from "express";
 import { CLIENT_URL, PORT } from "./config/env.js";
 import connectDB from "./database/db.js";
-import errorMiddleware from "./middlewares/error.middleware.js";
 import cookieParser from "cookie-parser";
 import cors from "cors";
+
 
 // Importing Routes
 import imagekitRouter from "./routes/imagekit.routes.js";
 import restaurantRouter from "./routes/restaurant.routes.js";
 import userRouter from "./routes/user.routes.js";
-import menuRoutesr from "./routes/menu.routes.js";
-import tableRoutesr from "./routes/table.routes.js";
+import menuRouter from "./routes/menu.routes.js";
+import tableRouter from "./routes/table.routes.js";
+import orderRoutes from "./routes/order.routes.js";
 
 const app = express();
-app.use(
-  cors({
-    origin: CLIENT_URL,
-    credentials: true,
-  })
-);
+
+// Middleware
+app.use(cors({ origin: CLIENT_URL, credentials: true }));
 app.use(express.json());
 app.use(cookieParser());
 
-// ROUTES
+// Routes
 app.use("/api/v1/images", imagekitRouter);
 app.use("/api/v1/restaurants", restaurantRouter);
 app.use("/api/v1/users", userRouter);
-app.use("/api/v1/menus", menuRoutesr);
-app.use("/api/v1/tables", tableRoutesr);
+app.use("/api/v1/menus", menuRouter);
+app.use("/api/v1/tables", tableRouter);
+app.use("/api/v1/orders", orderRoutes);
 
-// ERROR HANDLER
-app.use(errorMiddleware);
-
+// Test Route
 app.get("/", (req, res) => {
-  res.send("⚙️QRCode Backend Server");
+  res.send("⚙️ QRCode Backend Server is Running");
 });
 
+// Connect to DB & Start Server
 app.listen(PORT, async () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
   await connectDB();
 });
