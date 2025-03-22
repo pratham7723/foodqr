@@ -3,24 +3,46 @@ import Order from "../models/order.model.js";
 // Place a new order
 export const placeOrder = async (req, res) => {
   try {
-    console.log("📌 Request Query:", req.query); // Debugging
+    console.log("📌 Request Body:", req.body); // Log the request body
+    console.log("📌 Request Query:", req.query); // Log the query params
 
     const { customerName, phoneNumber, items, total } = req.body;
-    const { table } = req.query; // Get table number from URL query
+    const { table } = req.query;
 
-    if (!customerName || !phoneNumber || !items || items.length === 0 || !total || !table) {
-      return res.status(400).json({ message: "❌ All fields are required, and cart cannot be empty" });
+    if (
+      !customerName ||
+      !phoneNumber ||
+      !items ||
+      items.length === 0 ||
+      !total ||
+      !table
+    ) {
+      return res
+        .status(400)
+        .json({
+          message: "❌ All fields are required, and cart cannot be empty",
+        });
     }
 
-    const tableNumber = parseInt(table, 10); // Convert to number
+    const tableNumber = parseInt(table, 10);
 
-    const newOrder = new Order({ customerName, phoneNumber, items, total, tableNumber });
+    const newOrder = new Order({
+      customerName,
+      phoneNumber,
+      items,
+      total,
+      tableNumber,
+    });
     await newOrder.save();
 
-    res.status(201).json({ message: "✅ Order placed successfully", order: newOrder });
+    res
+      .status(201)
+      .json({ message: "✅ Order placed successfully", order: newOrder });
   } catch (error) {
     console.error("❌ Error placing order:", error);
-    res.status(500).json({ message: "❌ Error placing order", error: error.message });
+    res
+      .status(500)
+      .json({ message: "❌ Error placing order", error: error.message });
   }
 };
 
@@ -31,7 +53,9 @@ export const getOrders = async (req, res) => {
     res.status(200).json(orders);
   } catch (error) {
     console.error("Error fetching orders:", error);
-    res.status(500).json({ message: "❌ Error fetching orders", error: error.message });
+    res
+      .status(500)
+      .json({ message: "❌ Error fetching orders", error: error.message });
   }
 };
 
@@ -41,16 +65,27 @@ export const updateOrderStatus = async (req, res) => {
     const { orderId } = req.params;
     const { status } = req.body;
 
-    const updatedOrder = await Order.findOneAndUpdate({ orderId }, { status }, { new: true });
+    const updatedOrder = await Order.findOneAndUpdate(
+      { orderId },
+      { status },
+      { new: true }
+    );
 
     if (!updatedOrder) {
       return res.status(404).json({ message: "❌ Order not found" });
     }
 
-    res.status(200).json({ message: "✅ Order status updated", order: updatedOrder });
+    res
+      .status(200)
+      .json({ message: "✅ Order status updated", order: updatedOrder });
   } catch (error) {
     console.error("Error updating order status:", error);
-    res.status(500).json({ message: "❌ Error updating order status", error: error.message });
+    res
+      .status(500)
+      .json({
+        message: "❌ Error updating order status",
+        error: error.message,
+      });
   }
 };
 
@@ -64,9 +99,13 @@ export const cancelOrder = async (req, res) => {
       return res.status(404).json({ message: "❌ Order not found" });
     }
 
-    res.status(200).json({ message: `✅ Order #${orderId} cancelled successfully!` });
+    res
+      .status(200)
+      .json({ message: `✅ Order #${orderId} cancelled successfully!` });
   } catch (error) {
     console.error("Error cancelling order:", error);
-    res.status(500).json({ message: "❌ Failed to cancel order", error: error.message });
+    res
+      .status(500)
+      .json({ message: "❌ Failed to cancel order", error: error.message });
   }
 };
