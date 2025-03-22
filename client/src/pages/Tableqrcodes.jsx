@@ -8,7 +8,7 @@ const TableOrders = () => {
   useEffect(() => {
     const fetchTables = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/tables'); // Update with your API endpoint
+        const response = await fetch(`${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables`); // Update with your API endpoint
         const data = await response.json();
         
         // Sort tables in ascending order by tableNo
@@ -67,7 +67,7 @@ const TableOrders = () => {
         {/* Table Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {tables.map((table) => {
-            const tableURL = `http://localhost:5173/customermenu?table=${table.tableNo}`;
+            const tableURL = `${import.meta.env.VITE_REACT_APP_CLIENT_URL}/customermenu?table=${table.tableNo}`;
             return (
               <div key={table._id} className="bg-white p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300">
                 {/* Table Info */}
