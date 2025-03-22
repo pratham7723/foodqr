@@ -61,21 +61,18 @@ const Management = () => {
     setNewTable({ ...newTable, [name]: value });
   };
 
-  // Handle adding or updating a table
   const addOrUpdateTable = async () => {
     if (!newTable.tableNumber || !newTable.capacity) {
       alert("Please fill in all required fields.");
       return;
     }
-
+  
     try {
       let response;
       if (editingTable) {
         // Update existing table
         response = await axios.put(
-          `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables/${
-            editingTable._id
-          }`,
+          `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables/${editingTable.id}`,
           {
             tableNo: newTable.tableNumber,
             capacity: newTable.capacity,
@@ -83,11 +80,14 @@ const Management = () => {
             menuItems: newTable.menuItems,
           }
         );
-        setTables(
-          tables.map((table) =>
-            table._id === editingTable._id ? response.data : table
+  
+        // Ensure correct ID reference when updating state
+        setTables((prevTables) =>
+          prevTables.map((table) =>
+            table.id === editingTable.id ? { ...table, ...response.data } : table
           )
         );
+  
         setEditingTable(null);
       } else {
         // Add new table
@@ -102,6 +102,7 @@ const Management = () => {
         );
         setTables([...tables, response.data]);
       }
+  
       // Reset the form
       setNewTable({
         tableNumber: "",
@@ -109,12 +110,14 @@ const Management = () => {
         status: "Available",
         menuItems: [],
       });
+  
       console.log("Table saved:", response.data);
     } catch (error) {
       alert("Failed to save table");
       console.error(error);
     }
   };
+  
 
   // Handle editing a table
   const handleEditTable = (table) => {

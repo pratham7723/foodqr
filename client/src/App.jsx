@@ -30,6 +30,7 @@ function App() {
       <Route path="/kitchenstaff" element={<KitchenStaff />} />
       <Route path="/waiter" element={<Waiter />} />
       <Route path="/management" element={<Management />} />
+      <Route path="/customermenu/:table" element={<CustomerMenu />} />
     </Routes>
   </Router>
   )

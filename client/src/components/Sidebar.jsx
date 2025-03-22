@@ -40,6 +40,7 @@ const Sidebar = ({ disabled }) => {
                 Table Manager
               </Link>
             </li>
+            
             <li>
               <Link
                 to="/menu"
