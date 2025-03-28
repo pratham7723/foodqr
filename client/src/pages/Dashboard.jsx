@@ -1,7 +1,116 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from '../components/Sidebar';
 
+const formatINR = (amount) => {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 2
+  }).format(amount);
+};
 const Dashboard = () => {
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalRevenue: 0,
+    activeTables: 0,
+    availableTables: 0
+  });
+  const [loading, setLoading] = useState({
+    orders: true,
+    stats: true
+  });
+  const [error, setError] = useState({
+    orders: '',
+    stats: ''
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch recent orders
+        setLoading(prev => ({ ...prev, orders: true }));
+        const ordersResponse = await fetch('http://localhost:8000/api/v1/orders?limit=5&sort=-createdAt');
+        
+        if (!ordersResponse.ok) {
+          throw new Error(`Failed to fetch orders: ${ordersResponse.status}`);
+        }
+
+        const ordersData = await ordersResponse.json();
+        const orders = Array.isArray(ordersData) ? ordersData : (ordersData.data || []);
+        setRecentOrders(orders);
+        setError(prev => ({ ...prev, orders: '' }));
+
+        // Fetch statistics
+        setLoading(prev => ({ ...prev, stats: true }));
+        const statsResponse = await fetch('http://localhost:8000/api/v1/orders/stats');
+        
+        if (!statsResponse.ok) {
+          throw new Error(`Failed to fetch stats: ${statsResponse.status}`);
+        }
+
+        const statsData = await statsResponse.json();
+        setStats({
+          totalOrders: statsData.totalOrders || 0,
+          totalRevenue: statsData.totalRevenue || 0,
+          activeTables: statsData.activeTables || 0,
+          availableTables: statsData.availableTables || 0
+        });
+        setError(prev => ({ ...prev, stats: '' }));
+      } catch (err) {
+        if (err.message.includes('orders')) {
+          setError(prev => ({ ...prev, orders: err.message }));
+        } else {
+          setError(prev => ({ ...prev, stats: err.message }));
+        }
+        console.error("Error fetching data:", err);
+      } finally {
+        setLoading(prev => ({ orders: false, stats: false }));
+      }
+    };
+
+    fetchData();
+    const intervalId = setInterval(fetchData, 30000); // Auto-refresh every 30 seconds
+    
+    return () => clearInterval(intervalId);
+  }, []);
+
+  const getStatusBadge = (status) => {
+    const statusColors = {
+      pending: "bg-yellow-100 text-yellow-800",
+      preparing: "bg-blue-100 text-blue-800",
+      completed: "bg-green-100 text-green-800",
+      cancelled: "bg-red-100 text-red-800"
+    };
+    
+    const normalizedStatus = status?.toLowerCase() || 'unknown';
+    const colorClass = statusColors[normalizedStatus] || "bg-gray-100 text-gray-800";
+    
+    return (
+      <span className={`px-2 py-1 ${colorClass} rounded-full text-sm capitalize`}>
+        {normalizedStatus}
+      </span>
+    );
+  };
+
+  const formatItems = (items) => {
+    if (!items || !Array.isArray(items)) return "No items";
+    return items.map(item => 
+      `${item.quantity || 1}x ${item.name || 'Unnamed Item'}`
+    ).join(', ');
+  };
+
+  const formatCurrency = (amount) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(amount);
+  };
+
+  const formatNumber = (num) => {
+    return new Intl.NumberFormat('en-US').format(num);
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex">
       {/* Sidebar */}
@@ -29,79 +138,115 @@ const Dashboard = () => {
           {/* Total Orders */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold text-gray-700">Total Orders</h3>
-            <p className="text-3xl font-bold text-orange-600">1,234</p>
-            <p className="text-sm text-gray-500">+12% from last month</p>
+            {loading.stats ? (
+              <div className="animate-pulse h-8 w-3/4 bg-gray-200 rounded"></div>
+            ) : error.stats ? (
+              <p className="text-red-500 text-sm">Error loading</p>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-orange-600">
+                  {formatNumber(stats.totalOrders)}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {stats.activeTables > 0 ? 
+                    `${stats.activeTables} active tables` : 
+                    'No active orders'}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Revenue */} 
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold text-gray-700">Revenue</h3>
-            <p className="text-3xl font-bold text-orange-600">$12,345</p>
-            <p className="text-sm text-gray-500">+8% from last month</p>
+            {loading.stats ? (
+              <div className="animate-pulse h-8 w-3/4 bg-gray-200 rounded"></div>
+            ) : error.stats ? (
+              <p className="text-red-500 text-sm">Error loading</p>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-orange-600">
+                {formatINR(stats.totalRevenue)}
+                </p>
+                <p className="text-sm text-gray-500">
+                Today's revenue: {formatINR(stats.todaysRevenue)}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Active Tables */}
           <div className="bg-white p-6 rounded-lg shadow-md">
             <h3 className="text-lg font-semibold text-gray-700">Active Tables</h3>
-            <p className="text-3xl font-bold text-orange-600">18</p>
-            <p className="text-sm text-gray-500">5 tables available</p>
+            {loading.stats ? (
+              <div className="animate-pulse h-8 w-3/4 bg-gray-200 rounded"></div>
+            ) : error.stats ? (
+              <p className="text-red-500 text-sm">Error loading</p>
+            ) : (
+              <>
+                <p className="text-3xl font-bold text-orange-600">
+                  {stats.activeTables}
+                </p>
+                <p className="text-sm text-gray-500">
+                  {stats.availableTables > 0 ? 
+                    `${stats.availableTables} tables available` : 
+                    'No tables available'}
+                </p>
+              </>
+            )}
           </div>
         </div>
 
         {/* Recent Orders Section */}
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h3 className="text-xl font-semibold text-gray-800 mb-6">Recent Orders</h3>
-          <table className="w-full">
-            <thead>
-              <tr className="text-left border-b">
-                <th className="py-2">Order ID</th>
-                <th className="py-2">Customer</th>
-                <th className="py-2">Items</th>
-                <th className="py-2">Total</th>
-                <th className="py-2">Table</th>
-                <th className="py-2">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {/* Example Order Rows */}
-              <tr className="border-b hover:bg-gray-50">
-                <td className="py-4">#12345</td>
-                <td className="py-4">John Doe</td>
-                <td className="py-4">2x Burger, 1x Fries</td>
-                <td className="py-4">$25.00</td>
-                <td className="py-4">Table 1</td>
-                <td className="py-4">
-                  <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                    Completed
-                  </span>
-                </td>
-              </tr>
-              <tr className="border-b hover:bg-gray-50">
-                <td className="py-4">#12346</td>
-                <td className="py-4">Jane Smith</td>
-                <td className="py-4">1x Pizza, 2x Coke</td>
-                <td className="py-4">$18.50</td>
-                <td className="py-4">Table 3</td>
-                <td className="py-4">
-                  <span className="px-2 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm">
-                    Preparing
-                  </span>
-                </td>
-              </tr>
-              <tr className="border-b hover:bg-gray-50">
-                <td className="py-4">#12347</td>
-                <td className="py-4">Mike Johnson</td>
-                <td className="py-4">3x Tacos, 1x Salad</td>
-                <td className="py-4">$22.00</td>
-                <td className="py-4">Table 5</td>
-                <td className="py-4">
-                  <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                    Pending
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="flex justify-between items-center mb-6">
+            <h3 className="text-xl font-semibold text-gray-800">Recent Orders</h3>
+            {error.orders && (
+              <span className="text-sm text-red-500">{error.orders}</span>
+            )}
+          </div>
+          
+          {loading.orders ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-600"></div>
+            </div>
+          ) : recentOrders.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No recent orders found
+            </div>
+          ) : (
+            <table className="w-full">
+              <thead>
+                <tr className="text-left border-b">
+                  <th className="py-2">Order ID</th>
+                  <th className="py-2">Customer</th>
+                  <th className="py-2">Items</th>
+                  <th className="py-2">Total</th>
+                  <th className="py-2">Table</th>
+                  <th className="py-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentOrders.map((order) => {
+                  const orderId = order.orderId || order._id;
+                  const total = typeof order.total === 'number' ? order.total.toFixed(2) : 'N/A';
+                  
+                  return (
+                    <tr key={orderId} className="border-b hover:bg-gray-50">
+                      <td className="py-4">#{orderId}</td>
+                      <td className="py-4">{order.customerName || 'Unknown'}</td>
+                      <td className="py-4">{formatItems(order.items)}</td>
+                      <td className="py-4">₹{total}</td>
+                      <td className="py-4">{order.tableNumber || 'N/A'}</td>
+                      <td className="py-4">
+                        {getStatusBadge(order.status)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     </div>
