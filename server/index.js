@@ -12,6 +12,7 @@ import userRouter from "./routes/user.routes.js";
 import menuRouter from "./routes/menu.routes.js";
 import tableRouter from "./routes/table.routes.js";
 import orderRoutes from "./routes/order.routes.js";
+import reportRoutes from './routes/report.routes.js';
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use("/api/v1/users", userRouter);
 app.use("/api/v1/menus", menuRouter);
 app.use("/api/v1/tables", tableRouter);
 app.use("/api/v1/orders", orderRoutes);
+app.use('/api/v1/reports', reportRoutes);
 
 // Test Route
 app.get("/", (req, res) => {

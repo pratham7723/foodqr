@@ -12,6 +12,37 @@ export const getTables = async (req, res, next) => {
   }
 };
 
+// controllers/table.controller.js
+export const releaseTable = async (req, res) => {
+  try {
+    const table = await Table.findByIdAndUpdate(
+      req.params.id,
+      { 
+        status: "Available",
+        currentOrder: null,
+        menuItems: [] 
+      },
+      { new: true }
+    );
+
+    if (!table) {
+      return res.status(404).json({ success: false, message: "Table not found" });
+    }
+
+    res.json({
+      success: true,
+      message: `Table ${table.tableNo} is now available`,
+      data: table
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error releasing table",
+      error: error.message
+    });
+  }
+};
+
 // Get a single table
 export const getTableById = async (req, res, next) => {
   try {
