@@ -78,38 +78,85 @@ const CustomerMenu = () => {
   );
 
   const placeOrder = async () => {
-    if (!tableNumber || cart.length === 0 || !userName.trim() || !phoneNumber.trim()) {
-      alert(!tableNumber ? "Table number is missing!" :
-            cart.length === 0 ? "❌ Your cart is empty." :
-            "❌ Please enter your name and phone number.");
-      return;
-    }
-
-    setIsProcessing(true);
     try {
+      // 1. Validate inputs
+      const tableNum = parseInt(tableNumber, 10);
+      if (isNaN(tableNum)) {
+        alert("❌ Please scan a valid table QR code");
+        return;
+      }
+  
+      if (!userName?.trim() || !phoneNumber?.trim()) {
+        alert("❌ Please enter your name and phone number");
+        return;
+      }
+  
+      if (cart.length === 0) {
+        alert("❌ Your cart is empty");
+        return;
+      }
+  
+      // 2. Prepare order data
+      const orderData = {
+        customerName: userName.trim(),
+        phoneNumber: phoneNumber.trim(),
+        items: cart.map(item => ({
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity,
+          _id: item._id
+        })),
+        total: totalAmount,
+        specialInstructions: ""
+      };
+  
+      console.log("📤 Submitting order:", {
+        url: `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/orders?table=${tableNum}`,
+        data: orderData
+      });
+  
+      // 3. Submit to backend
+      setIsProcessing(true);
       const response = await axios.post(
-        `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/orders?table=${tableNumber}`,
+        `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/orders?table=${tableNum}`,
+        orderData,
         {
-          customerName: userName.trim(),
-          phoneNumber: phoneNumber.trim(),
-          items: cart.map((item) => ({
-            name: item.name,
-            price: item.price,
-            quantity: item.quantity,
-          })),
-          total: totalAmount,
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 10000 // 10 second timeout
         }
       );
-
+  
+      console.log("📥 Server response:", response.data);
+  
+      // 4. Handle success
       if (response.status === 201) {
         setOrderPlaced(true);
-        setOrderNumber(response.data.order.orderId);
+        setOrderNumber(response.data.order?.orderId || "N/A");
         setCart([]);
-        setTimeout(() => setOrderPlaced(false), 3000);
+        setUserName("");
+        setPhoneNumber("");
+        setTimeout(() => setOrderPlaced(false), 5000);
       }
+  
     } catch (error) {
-      console.error("❌ Error placing order:", error);
-      alert(error.response?.data?.message || "Something went wrong. Please try again.");
+      console.error("❌ Order Error Details:", {
+        error: error.response ? {
+          status: error.response.status,
+          data: error.response.data,
+          headers: error.response.headers
+        } : error.message,
+        config: error.config
+      });
+  
+      alert(
+        error.response?.data?.message || 
+        "Order failed. Please check:\n" +
+        "1. Your internet connection\n" +
+        "2. Table number is correct\n" +
+        "3. Try again later"
+      );
     } finally {
       setIsProcessing(false);
     }
