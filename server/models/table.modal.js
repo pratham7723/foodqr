@@ -4,7 +4,6 @@ const TableSchema = new mongoose.Schema({
   restaurantId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Restaurant",
-    // required: true, // TODO: ENABLE BEFORE PRODUCTION
   },
   tableNo: {
     type: Number,
@@ -15,6 +14,10 @@ const TableSchema = new mongoose.Schema({
     type: String,
     enum: ["Available", "Booked", "Reserved"],
     default: "Available",
+  },
+  currentOrder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Order"
   },
   menuItems: [
     {
@@ -29,7 +32,12 @@ const TableSchema = new mongoose.Schema({
       },
     },
   ],
-});
+  capacity: {
+    type: Number,
+    required: true,
+    default: 4
+  }
+}, { timestamps: true });
 
 const Table = mongoose.model("Table", TableSchema);
 

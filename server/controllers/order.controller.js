@@ -1,4 +1,6 @@
+import mongoose from "mongoose";
 import Order from "../models/order.model.js";
+import Table from "../models/table.modal.js";
 
 /**
  * @desc    Place a new order
@@ -24,17 +26,6 @@ export const placeOrder = async (req, res) => {
       });
     }
 
-    // Validate items structure
-    const invalidItems = items.some(item => 
-      !item.name || !item.price || !item.quantity
-    );
-    if (invalidItems) {
-      return res.status(400).json({
-        success: false,
-        message: "❌ Each item must have name, price, and quantity",
-      });
-    }
-
     const tableNumber = parseInt(table, 10);
     if (isNaN(tableNumber)) {
       return res.status(400).json({
@@ -43,9 +34,26 @@ export const placeOrder = async (req, res) => {
       });
     }
 
-    // Calculate total if not provided
+    // Check table availability first
+    const existingTable = await Table.findOne({ tableNo: tableNumber });
+    if (!existingTable) {
+      return res.status(400).json({
+        success: false,
+        message: `❌ Table ${tableNumber} doesn't exist`,
+      });
+    }
+
+    if (existingTable.status !== "Available") {
+      return res.status(400).json({
+        success: false,
+        message: `❌ Table ${tableNumber} is already ${existingTable.status}`,
+      });
+    }
+
+    // Calculate total
     const total = req.body.total || items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
+    // Create the order
     const newOrder = new Order({
       customerName,
       phoneNumber,
@@ -56,21 +64,51 @@ export const placeOrder = async (req, res) => {
       status: "pending",
     });
 
-    await newOrder.save();
+    // Start transaction
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    res.status(201).json({
-      success: true,
-      message: "✅ Order placed successfully",
-      order: {
-        orderId: newOrder.orderId,
-        customerName: newOrder.customerName,
-        tableNumber: newOrder.tableNumber,
-        items: newOrder.items,
-        total: newOrder.total,
-        status: newOrder.status,
-        createdAt: newOrder.createdAt,
-      },
-    });
+    try {
+      // Save the order
+      await newOrder.save({ session });
+
+      // Update table status
+      await Table.findOneAndUpdate(
+        { tableNo: tableNumber },
+        { 
+          status: "Booked",
+          $push: {
+            menuItems: items.map(item => ({
+              menuItem: item._id,
+              quantity: item.quantity
+            }))
+          }
+        },
+        { new: true, session }
+      );
+
+      await session.commitTransaction();
+      
+      res.status(201).json({
+        success: true,
+        message: "✅ Order placed successfully",
+        order: {
+          orderId: newOrder.orderId,
+          customerName: newOrder.customerName,
+          tableNumber: newOrder.tableNumber,
+          items: newOrder.items,
+          total: newOrder.total,
+          status: newOrder.status,
+          createdAt: newOrder.createdAt,
+        },
+      });
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
   } catch (error) {
     console.error("❌ Error placing order:", error);
     res.status(500).json({
@@ -151,11 +189,12 @@ export const getOrders = async (req, res) => {
 // Update order status with proper validation
 // Add this normalization at the top of your updateOrderStatus function
 export const updateOrderStatus = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     const { orderId } = req.params;
     let { status } = req.body;
-
-    // Normalize status to lowercase
     status = status.toLowerCase();
 
     const validStatuses = ["pending", "preparing", "completed", "cancelled"];
@@ -166,7 +205,7 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    const order = await Order.findOne({ orderId });
+    const order = await Order.findOne({ orderId }).session(session);
     if (!order) {
       return res.status(404).json({ 
         success: false,
@@ -174,36 +213,26 @@ export const updateOrderStatus = async (req, res) => {
       });
     }
 
-    // Normalize existing status
-    const currentStatus = order.status.toLowerCase();
-
-    const validTransitions = {
-      pending: ["preparing", "cancelled"],
-      preparing: ["completed", "cancelled"],
-      completed: [],
-      cancelled: []
-    };
-
-    if (!validTransitions[currentStatus]) {
-      return res.status(400).json({
-        success: false,
-        message: `Current order status '${currentStatus}' is not valid`
-      });
-    }
-
-    if (!validTransitions[currentStatus].includes(status)) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot change status from ${currentStatus} to ${status}`
-      });
+    // If changing to completed or cancelled, free up the table
+    if (["completed", "cancelled"].includes(status)) {
+      await Table.findOneAndUpdate(
+        { tableNo: order.tableNumber },
+        { 
+          status: "Available",
+          $pull: { menuItems: {} } // Clear all menu items
+        },
+        { session }
+      );
     }
 
     const updatedOrder = await Order.findOneAndUpdate(
       { orderId },
       { status },
-      { new: true, runValidators: true }
+      { new: true, runValidators: true, session }
     );
 
+    await session.commitTransaction();
+    
     res.status(200).json({
       success: true,
       message: "Order status updated successfully",
@@ -211,12 +240,15 @@ export const updateOrderStatus = async (req, res) => {
     });
 
   } catch (error) {
+    await session.abortTransaction();
     console.error("Error updating order status:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error",
       error: error.message
     });
+  } finally {
+    session.endSession();
   }
 };
 

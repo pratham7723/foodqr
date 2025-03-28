@@ -7,6 +7,7 @@ import {
   createTable,
   updateTable,
   deleteTable,
+  checkTableAvailability,
 } from "../controllers/table.controller.js";
 
 const tableRouter = Router();
@@ -17,5 +18,6 @@ tableRouter.get("/:id", getTableById); // Get a single table by ID
 tableRouter.post("/", createTable); // Create a new table
 tableRouter.put("/:id", updateTable); // Update an existing table
 tableRouter.delete("/:id", deleteTable); // Delete a table
+tableRouter.get("/check/:tableNo", checkTableAvailability);
 
 export default tableRouter;

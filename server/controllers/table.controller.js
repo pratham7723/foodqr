@@ -59,3 +59,30 @@ export const deleteTable = async (req, res, next) => {
     next(error);
   }
 };
+
+export const checkTableAvailability = async (req, res) => {
+  try {
+    const { tableNo } = req.params;
+    const table = await Table.findOne({ tableNo: parseInt(tableNo) });
+    
+    if (!table) {
+      return res.status(404).json({
+        success: false,
+        message: "Table not found"
+      });
+    }
+
+    res.json({
+      success: true,
+      tableNumber: table.tableNo,
+      status: table.status,
+      capacity: table.capacity
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error checking table status",
+      error: error.message
+    });
+  }
+};
