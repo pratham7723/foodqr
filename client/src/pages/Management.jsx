@@ -1,24 +1,16 @@
 import React, { useState, useEffect } from "react";
 import Sidebar from "../components/Sidebar";
 import { PDFDownloadLink } from "@react-pdf/renderer";
-import BillPDF from "../components/BillPDF"; // Component to generate PDF
+import BillPDF from "../components/BillPDF";
 import axios from "axios";
 
 const Management = () => {
-  const [tables, setTables] = useState([]); // State to store table data
-  const [loading, setLoading] = useState(false); // State for loading
-  const [error, setError] = useState(""); // State for error
-  const [editingTable, setEditingTable] = useState(null); // State for editing a table
+  const [tables, setTables] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [viewingOrder, setViewingOrder] = useState(null);
+  const [orderDetails, setOrderDetails] = useState(null);
 
-  // Form state
-  const [newTable, setNewTable] = useState({
-    tableNumber: "",
-    capacity: "",
-    status: "Available",
-    menuItems: [],
-  });
-
-  // Fetch table data from the backend
+  // Fetch table data
   useEffect(() => {
     const fetchTables = async () => {
       setLoading(true);
@@ -26,28 +18,27 @@ const Management = () => {
         const response = await axios.get(
           `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables`
         );
-        // Map the fetched data to match the expected structure
         const mappedTables = response.data.map((table) => ({
           id: table._id,
           tableNumber: table.tableNo,
-          capacity: table.capacity || 4, // Use actual capacity if available
+          capacity: table.capacity || 4,
           status: table.status,
-          order: table.menuItems
-            .map(
-              (item) =>
-                `${item.quantity}x ${item.menuItem?.name || "Unknown Item"}`
-            )
+          order: (table.menuItems || [])
+            .map((item) => `${item.quantity}x ${item.menuItem?.name || "Unknown Item"}`)
             .join(", "),
-          billAmount: table.menuItems.reduce(
-            (total, item) =>
-              total + (item.menuItem?.price || 0) * item.quantity,
+          billAmount: (table.menuItems || []).reduce(
+            (total, item) => total + (item.menuItem?.price || 0) * item.quantity,
             0
           ),
+          customerName: table.customerName || "Walk-in Customer",
+          customerPhone: table.customerPhone || "N/A",
+          currentOrder: table.currentOrder || null,
+          hasActiveOrder: table.status !== "Available",
+          menuItems: table.menuItems || [] // Ensure menuItems is always an array
         }));
         setTables(mappedTables);
       } catch (err) {
-        setError("Failed to fetch table data");
-        console.error(err);
+        console.error("Failed to fetch table data:", err);
       }
       setLoading(false);
     };
@@ -55,262 +46,290 @@ const Management = () => {
     fetchTables();
   }, []);
 
-  // Handle input change for the form
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewTable({ ...newTable, [name]: value });
-  };
-
-  const addOrUpdateTable = async () => {
-    if (!newTable.tableNumber || !newTable.capacity) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-  
+  // Fetch order details
+  const fetchOrderDetails = async (orderId) => {
     try {
-      let response;
-      if (editingTable) {
-        // Update existing table
-        response = await axios.put(
-          `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables/${editingTable.id}`,
-          {
-            tableNo: newTable.tableNumber,
-            capacity: newTable.capacity,
-            status: newTable.status,
-            menuItems: newTable.menuItems,
-          }
-        );
-  
-        // Ensure correct ID reference when updating state
-        setTables((prevTables) =>
-          prevTables.map((table) =>
-            table.id === editingTable.id ? { ...table, ...response.data } : table
-          )
-        );
-  
-        setEditingTable(null);
-      } else {
-        // Add new table
-        response = await axios.post(
-          `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables`,
-          {
-            tableNo: newTable.tableNumber,
-            capacity: newTable.capacity,
-            status: newTable.status,
-            menuItems: newTable.menuItems,
-          }
-        );
-        setTables([...tables, response.data]);
-      }
-  
-      // Reset the form
-      setNewTable({
-        tableNumber: "",
-        capacity: "",
-        status: "Available",
-        menuItems: [],
-      });
-  
-      console.log("Table saved:", response.data);
+      const response = await axios.get(
+        `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/orders/${orderId}`
+      );
+      setOrderDetails(response.data);
     } catch (error) {
-      alert("Failed to save table");
-      console.error(error);
-    }
-  };
-  
-
-  // Handle editing a table
-  const handleEditTable = (table) => {
-    setEditingTable(table);
-    setNewTable({
-      tableNumber: table.tableNumber,
-      capacity: table.capacity,
-      status: table.status,
-      menuItems: table.order
-        ? table.order.split(", ").map((item) => {
-            const [quantity, name] = item.split("x ");
-            return { quantity: parseInt(quantity), menuItem: { name } };
-          })
-        : [],
-    });
-  };
-
-  // Handle deleting a table
-  const handleDeleteTable = async (id) => {
-    if (window.confirm("Are you sure you want to delete this table?")) {
-      try {
-        await axios.delete(
-          `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables/${id}`
-        );
-        setTables(tables.filter((table) => table._id !== id));
-        console.log("Table deleted:", id);
-      } catch (error) {
-        alert("Failed to delete table");
-        console.error(error);
+      console.error("Error fetching order details:", error);
+      // Fallback to table data if order details fetch fails
+      const table = tables.find(t => t.currentOrder === orderId);
+      if (table) {
+        setOrderDetails({
+          customerName: table.customerName,
+          phoneNumber: table.customerPhone,
+          status: "in-progress",
+          items: (table.menuItems || []).map(item => ({
+            name: item.menuItem?.name || "Unknown Item",
+            quantity: item.quantity,
+            price: item.menuItem?.price || 0
+          })),
+          total: table.billAmount
+        });
       }
     }
   };
 
-  if (loading) {
-    return <div className="min-h-screen bg-gray-100 flex">Loading...</div>;
-  }
+  // Handle viewing order
+  const handleViewOrder = (table) => {
+    if (table.hasActiveOrder) {
+      setViewingOrder(table);
+      if (table.currentOrder) {
+        fetchOrderDetails(table.currentOrder);
+      } else {
+        // Handle case where there's no order ID but table is occupied
+        setOrderDetails({
+          customerName: table.customerName,
+          phoneNumber: table.customerPhone,
+          status: "in-progress",
+          items: (table.menuItems || []).map(item => ({
+            name: item.menuItem?.name || "Unknown Item",
+            quantity: item.quantity,
+            price: item.menuItem?.price || 0
+          })),
+          total: table.billAmount
+        });
+      }
+    } else {
+      alert("No active order for this table");
+    }
+  };
 
-  if (error) {
-    return <div className="min-h-screen bg-gray-100 flex">Error: {error}</div>;
-  }
+  // Handle print complete and table release
+  const handlePrintComplete = async (tableId) => {
+    try {
+      await axios.patch(
+        `${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables/${tableId}/release`
+      );
+      
+      setTables(prevTables => 
+        prevTables.map(table => 
+          table.id === tableId 
+            ? { 
+                ...table, 
+                status: "Available", 
+                order: "", 
+                billAmount: 0,
+                customerName: "",
+                customerPhone: "",
+                currentOrder: null,
+                hasActiveOrder: false,
+                menuItems: []
+              } 
+            : table
+        )
+      );
+      setViewingOrder(null);
+      setOrderDetails(null);
+    } catch (error) {
+      console.error("Error releasing table:", error);
+      alert("Failed to release table. Please try again.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 flex">
-      {/* Sidebar */}
       <Sidebar />
-
-      {/* Main Content */}
+      
       <div className="flex-1 p-8">
         {/* Header */}
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-3xl font-bold text-gray-800">
-            Management Dashboard
-          </h2>
+          <h2 className="text-3xl font-bold text-gray-800">Table Management</h2>
         </div>
-
-        {/* Add/Edit Table Form */}
-        <form
-          className="bg-white p-6 rounded-lg shadow-md mb-8"
-          onSubmit={(e) => {
-            e.preventDefault();
-            addOrUpdateTable();
-          }}
-        >
-          <h3 className="text-xl font-semibold text-gray-800 mb-4">
-            {editingTable ? "Edit Table" : "Add New Table"}
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <input
-              type="number"
-              name="tableNumber"
-              placeholder="Table Number"
-              value={newTable.tableNumber}
-              onChange={handleInputChange}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-            />
-            <input
-              type="number"
-              name="capacity"
-              placeholder="Capacity"
-              value={newTable.capacity}
-              onChange={handleInputChange}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-            />
-            <select
-              name="status"
-              value={newTable.status}
-              onChange={handleInputChange}
-              className="px-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-            >
-              <option value="Available">Available</option>
-              <option value="Booked">Booked</option>
-              <option value="Reserved">Reserved</option>
-            </select>
-          </div>
-
-          <button
-            type="submit"
-            className="mt-4 bg-orange-600 text-white px-4 py-3 rounded-lg hover:bg-orange-700 transition duration-300"
-          >
-            {editingTable ? "Update Table" : "Add Table"}
-          </button>
-
-          {editingTable && (
-            <button
-              type="button"
-              onClick={() => {
-                setEditingTable(null);
-                setNewTable({
-                  tableNumber: "",
-                  capacity: "",
-                  status: "Available",
-                  menuItems: [],
-                });
-              }}
-              className="mt-4 bg-gray-600 text-white px-4 py-3 rounded-lg hover:bg-gray-700 ml-2"
-            >
-              Cancel Edit
-            </button>
-          )}
-        </form>
 
         {/* Tables Section */}
         <div className="bg-white p-6 rounded-lg shadow-md">
           <h3 className="text-xl font-semibold text-gray-800 mb-4">
             Table Status
           </h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {tables.map((table) => (
-              <div
-                key={table._id}
-                className="bg-gray-50 p-4 rounded-lg shadow-sm"
-              >
-                <p className="text-lg font-semibold text-gray-800">
-                  Table {table.tableNumber}
-                </p>
-                <p className="text-sm text-gray-600">
-                  Capacity: {table.capacity}
-                </p>
-                <p
-                  className={`text-sm ${
-                    table.status === "Available"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }`}
-                >
-                  Status: {table.status}
-                </p>
-                {table.order && (
-                  <>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Order: {table.order}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      Bill Amount: ${table.billAmount.toFixed(2)}
-                    </p>
-                    <div className="mt-2">
-                      <PDFDownloadLink
-                        document={<BillPDF table={table} />}
-                        fileName={`bill_table_${table.tableNumber}.pdf`}
-                      >
-                        {({ loading }) =>
-                          loading ? (
-                            <button className="bg-gray-600 text-white px-4 py-2 rounded-lg">
-                              Loading...
+          {loading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500"></div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {tables.map((table) => (
+                <div key={table.id} className="bg-gray-50 p-4 rounded-lg shadow-sm">
+                  <p className="text-lg font-semibold text-gray-800">
+                    Table {table.tableNumber}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Capacity: {table.capacity}
+                  </p>
+                  <p className={`text-sm ${
+                    table.status === "Available" ? "text-green-600" : "text-red-600"
+                  }`}>
+                    Status: {table.status}
+                  </p>
+                  
+                  {table.hasActiveOrder && (
+                    <>
+                      <p className="text-sm text-gray-600 mt-2">
+                        Customer: {table.customerName}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Phone: {table.customerPhone}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Order: {table.order}
+                      </p>
+                      <p className="text-sm text-gray-600">
+                        Bill Amount: ₹{table.billAmount.toFixed(2)}
+                      </p>
+                      
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <button
+                          onClick={() => handleViewOrder(table)}
+                          className="text-white bg-blue-400 hover:bg-blue-600 px-2 py-1 rounded text-sm"
+                        >
+                          View Order
+                        </button>
+                        <PDFDownloadLink
+                          document={
+                            <BillPDF 
+                              table={table}
+                              customer={{
+                                name: table.customerName,
+                                phone: table.customerPhone
+                              }}
+                              items={table.menuItems || []}
+                            />
+                          }
+                          fileName={`Bill_Table_${table.tableNumber}.pdf`}
+                          onClick={() => handlePrintComplete(table.id)}
+                        >
+                          {({ loading }) => (
+                            <button className="bg-orange-600 text-white px-2 py-1 rounded text-sm hover:bg-orange-700">
+                              {loading ? "Generating..." : "Print Bill"}
                             </button>
-                          ) : (
-                            <button className="bg-orange-600 text-white px-4 py-2 rounded-lg hover:bg-orange-700 transition duration-300">
-                              Print Bill
-                            </button>
-                          )
-                        }
-                      </PDFDownloadLink>
-                    </div>
-                  </>
-                )}
-                <div className="mt-2">
-                  <button
-                    onClick={() => handleEditTable(table)}
-                    className="text-white bg-green-400 hover:bg-green-600 px-2 py-2 rounded-lg mr-2"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTable(table._id)}
-                    className="text-white bg-red-400 hover:bg-red-600 px-2 py-2 rounded-lg"
-                  >
-                    Delete
-                  </button>
+                          )}
+                        </PDFDownloadLink>
+                      </div>
+                    </>
+                  )}
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
+
+        {/* Order Details Modal */}
+        {viewingOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">
+                  Order Details for Table {viewingOrder.tableNumber}
+                </h3>
+                <button 
+                  onClick={() => {
+                    setViewingOrder(null);
+                    setOrderDetails(null);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {orderDetails ? (
+                <div>
+                  <div className="mb-4">
+                    <h4 className="font-medium text-gray-800">Customer Information</h4>
+                    <p>Name: {orderDetails.customerName || "Walk-in Customer"}</p>
+                    <p>Phone: {orderDetails.phoneNumber || "N/A"}</p>
+                    <p>Status: <span className={`px-2 py-1 rounded-full text-xs ${
+                      orderDetails.status === 'completed' 
+                        ? 'bg-green-100 text-green-700' 
+                        : orderDetails.status === 'preparing' 
+                        ? 'bg-yellow-100 text-yellow-700' 
+                        : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {orderDetails.status}
+                    </span></p>
+                  </div>
+
+                  <div className="mb-4">
+                    <h4 className="font-medium text-gray-800">Order Items</h4>
+                    {orderDetails.items && orderDetails.items.length > 0 ? (
+                      <div className="border rounded-lg overflow-hidden">
+                        <table className="min-w-full divide-y divide-gray-200">
+                          <thead className="bg-gray-50">
+                            <tr>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                              <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {orderDetails.items.map((item, index) => (
+                              <tr key={index}>
+                                <td className="px-4 py-2 whitespace-nowrap">{item.name}</td>
+                                <td className="px-4 py-2 whitespace-nowrap">{item.quantity}</td>
+                                <td className="px-4 py-2 whitespace-nowrap">₹{item.price.toFixed(2)}</td>
+                                <td className="px-4 py-2 whitespace-nowrap">₹{(item.price * item.quantity).toFixed(2)}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                          <tfoot className="bg-gray-50">
+                            <tr>
+                              <td colSpan="3" className="px-4 py-2 text-right font-medium">Total Amount:</td>
+                              <td className="px-4 py-2 font-medium">₹{orderDetails.total.toFixed(2)}</td>
+                            </tr>
+                          </tfoot>
+                        </table>
+                      </div>
+                    ) : (
+                      <p className="text-gray-500">No items in this order</p>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      onClick={() => {
+                        setViewingOrder(null);
+                        setOrderDetails(null);
+                      }}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition"
+                    >
+                      Close
+                    </button>
+                    <PDFDownloadLink
+                      document={
+                        <BillPDF 
+                          table={viewingOrder}
+                          customer={{
+                            name: orderDetails.customerName,
+                            phone: orderDetails.phoneNumber
+                          }}
+                          items={orderDetails.items || []}
+                        />
+                      }
+                      fileName={`Bill_Table_${viewingOrder.tableNumber}.pdf`}
+                      onClick={() => handlePrintComplete(viewingOrder.id)}
+                    >
+                      {({ loading }) => (
+                        <button className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition">
+                          {loading ? "Generating..." : "Print Bill & Release"}
+                        </button>
+                      )}
+                    </PDFDownloadLink>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex justify-center items-center h-32">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-orange-500"></div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -8,21 +8,25 @@ const formatINR = (amount) => {
     minimumFractionDigits: 2
   }).format(amount);
 };
+
 const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState([]);
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalRevenue: 0,
-    activeTables: 0,
-    availableTables: 0
+    occupiedTables: 0,
+    totalTables: 0,
+    todaysRevenue: 0
   });
   const [loading, setLoading] = useState({
     orders: true,
-    stats: true
+    stats: true,
+    tables: true
   });
   const [error, setError] = useState({
     orders: '',
-    stats: ''
+    stats: '',
+    tables: ''
   });
 
   useEffect(() => {
@@ -30,7 +34,7 @@ const Dashboard = () => {
       try {
         // Fetch recent orders
         setLoading(prev => ({ ...prev, orders: true }));
-        const ordersResponse = await fetch('http://localhost:8000/api/v1/orders?limit=5&sort=-createdAt');
+        const ordersResponse = await fetch(`${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/orders?limit=5&sort=-createdAt`);
         
         if (!ordersResponse.ok) {
           throw new Error(`Failed to fetch orders: ${ordersResponse.status}`);
@@ -43,29 +47,46 @@ const Dashboard = () => {
 
         // Fetch statistics
         setLoading(prev => ({ ...prev, stats: true }));
-        const statsResponse = await fetch('http://localhost:8000/api/v1/orders/stats');
+        const statsResponse = await fetch(`${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/orders/stats`);
         
         if (!statsResponse.ok) {
           throw new Error(`Failed to fetch stats: ${statsResponse.status}`);
         }
 
         const statsData = await statsResponse.json();
+        
+        // Fetch tables data
+        setLoading(prev => ({ ...prev, tables: true }));
+        const tablesResponse = await fetch(`${import.meta.env.VITE_REACT_APP_SERVER_URL}/api/v1/tables`);
+        
+        if (!tablesResponse.ok) {
+          throw new Error(`Failed to fetch tables: ${tablesResponse.status}`);
+        }
+
+        const tablesData = await tablesResponse.json();
+        const totalTables = tablesData.length || 0;
+        const occupiedTables = tablesData.filter(table =>  table.status === 'Occupied' || table.status === 'Booked').length;
+
         setStats({
           totalOrders: statsData.totalOrders || 0,
           totalRevenue: statsData.totalRevenue || 0,
-          activeTables: statsData.activeTables || 0,
-          availableTables: statsData.availableTables || 0
+          occupiedTables: occupiedTables,
+          totalTables: totalTables,
+          todaysRevenue: statsData.todaysRevenue || 0
         });
-        setError(prev => ({ ...prev, stats: '' }));
+        
+        setError(prev => ({ ...prev, stats: '', tables: '' }));
       } catch (err) {
         if (err.message.includes('orders')) {
           setError(prev => ({ ...prev, orders: err.message }));
+        } else if (err.message.includes('tables')) {
+          setError(prev => ({ ...prev, tables: err.message }));
         } else {
           setError(prev => ({ ...prev, stats: err.message }));
         }
         console.error("Error fetching data:", err);
       } finally {
-        setLoading(prev => ({ orders: false, stats: false }));
+        setLoading(prev => ({ orders: false, stats: false, tables: false }));
       }
     };
 
@@ -98,13 +119,6 @@ const Dashboard = () => {
     return items.map(item => 
       `${item.quantity || 1}x ${item.name || 'Unnamed Item'}`
     ).join(', ');
-  };
-
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
   };
 
   const formatNumber = (num) => {
@@ -148,8 +162,8 @@ const Dashboard = () => {
                   {formatNumber(stats.totalOrders)}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {stats.activeTables > 0 ? 
-                    `${stats.activeTables} active tables` : 
+                  {stats.occupiedTables > 0 ? 
+                    `${stats.occupiedTables} tables occupied` : 
                     'No active orders'}
                 </p>
               </>
@@ -166,31 +180,29 @@ const Dashboard = () => {
             ) : (
               <>
                 <p className="text-3xl font-bold text-orange-600">
-                {formatINR(stats.totalRevenue)}
+                  {formatINR(stats.totalRevenue)}
                 </p>
                 <p className="text-sm text-gray-500">
-                Today's revenue: {formatINR(stats.todaysRevenue)}
+                  Today's revenue: {formatINR(stats.todaysRevenue)}
                 </p>
               </>
             )}
           </div>
 
-          {/* Active Tables */}
+          {/* Tables - Combined View */}
           <div className="bg-white p-6 rounded-lg shadow-md">
-            <h3 className="text-lg font-semibold text-gray-700">Active Tables</h3>
-            {loading.stats ? (
+            <h3 className="text-lg font-semibold text-gray-700">Tables</h3>
+            {loading.tables ? (
               <div className="animate-pulse h-8 w-3/4 bg-gray-200 rounded"></div>
-            ) : error.stats ? (
+            ) : error.tables ? (
               <p className="text-red-500 text-sm">Error loading</p>
             ) : (
               <>
                 <p className="text-3xl font-bold text-orange-600">
-                  {stats.activeTables}
+                  {stats.occupiedTables}
                 </p>
                 <p className="text-sm text-gray-500">
-                  {stats.availableTables > 0 ? 
-                    `${stats.availableTables} tables available` : 
-                    'No tables available'}
+                  {stats.totalTables - stats.occupiedTables} available (Total: {stats.totalTables})
                 </p>
               </>
             )}
