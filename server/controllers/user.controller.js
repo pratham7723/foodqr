@@ -3,23 +3,40 @@ import bcrypt from "bcryptjs"; // Ensure bcrypt is installed
 import jwt from "jsonwebtoken"; // Ensure jwt is installed
 
 // Create a new user
-export const createUser = async (req, res, next) => {
+export const createUser = async (req, res) => {
   try {
     const { name, email, password, phone, role } = req.body;
 
-    // Check if the user already exists
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ error: "User already exists" });
+    // Validate input
+    if (!name || !email || !password || !role) {
+      return res.status(400).json({ error: 'Missing required fields' });
     }
 
-    // Create the user
-    const user = new User({ name, email, password, phone, role });
-    await user.save();
+    // Check for existing user
+    const exists = await User.findOne({ email });
+    if (exists) {
+      return res.status(400).json({ error: 'Email already in use' });
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const user = await User.create({
+      name,
+      email,
+      password: hashedPassword,
+      phone,
+      role
+    });
 
     res.status(201).json(user);
   } catch (error) {
-    next(error);
+    console.error('Create user error:', error);
+    res.status(500).json({ 
+      error: 'Server error',
+      message: error.message 
+    });
   }
 };
 
@@ -120,3 +137,4 @@ export const updateUser = async (req, res, next) => {
     next(error);
   }
 };
+
