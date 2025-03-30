@@ -29,12 +29,27 @@ const Staff = () => {
   useEffect(() => {
     const fetchStaff = async () => {
       try {
-        const response = await fetch('http://localhost:8000/api/v1/users');
-        if (!response.ok) throw new Error('Failed to fetch staff data');
-
+        const response = await fetch('http://localhost:8000/api/v1/users', {
+          headers: {
+            'Content-Type': 'application/json',
+            // Add if using auth:
+            // 'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+  
         const data = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch staff');
+        }
+  
+        if (!Array.isArray(data)) {
+          throw new Error('Received invalid staff data format');
+        }
+  
         setStaff(data);
       } catch (error) {
+        console.error('Fetch error:', error);
         setError(error.message);
       } finally {
         setLoading(false);
@@ -52,29 +67,37 @@ const Staff = () => {
 
   // Add new staff
   const addStaff = async () => {
+    // Validate required fields
     if (!newStaff.name || !newStaff.email || !newStaff.password) {
-      alert('Please fill in all required fields.');
+      setError('Name, email, and password are required');
       return;
     }
-
+  
     try {
       const response = await fetch('http://localhost:8000/api/v1/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newStaff),
+        body: JSON.stringify(newStaff)
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to add staff');
-      }
-
+  
       const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to add staff');
+      }
+  
       setStaff([...staff, data]);
-      setNewStaff({ name: '', email: '', password: '', role: 'Waiter', phone: '', status: 'Active' });
+      setNewStaff({ 
+        name: '', 
+        email: '', 
+        password: '', 
+        role: 'Waiter', 
+        phone: '' 
+      });
+      setError(null);
     } catch (error) {
+      console.error('Submission error:', error);
       setError(error.message);
-      alert(`Error: ${error.message}`);
     }
   };
 

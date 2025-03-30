@@ -229,7 +229,7 @@ const Home = () => {
                     <a href="#features" className="text-gray-800 hover:text-orange-600 px-3 py-2 text-sm font-medium transition-colors">Features</a>
                     <a href="#testimonials" className="text-gray-800 hover:text-orange-600 px-3 py-2 text-sm font-medium transition-colors">Testimonials</a>
                     <a href="#contact" className="text-gray-800 hover:text-orange-600 px-3 py-2 text-sm font-medium transition-colors">Contact</a>
-                    <a href="/login"  className="border border-orange-600 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-full text-sm font-medium transition-colors">Login</a>
+                    <a href="/Loginpage"  className="border border-orange-600 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-full text-sm font-medium transition-colors">Login</a>
                   </motion.div>
                 </div>
                 
@@ -267,7 +267,7 @@ const Home = () => {
                     <a href="#testimonials" className="block text-gray-800 hover:text-orange-600 px-3 py-2 rounded-md text-base font-medium">Testimonials</a>
                     <a href="#contact" className="block text-gray-800 hover:text-orange-600 px-3 py-2 rounded-md text-base font-medium">Contact</a>
                     <div className="pt-4 border-t border-gray-200">
-                      <a href="/login" className="w-full mb-2 border border-orange-600 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-full text-sm font-medium transition-colors">Login</a>
+                      <a href="/Loginpage" className="w-full mb-2 border border-orange-600 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-full text-sm font-medium transition-colors">Login</a>
                       
                     </div>
                   </div>
@@ -733,7 +733,7 @@ const Home = () => {
                         <FiMapPin className="text-2xl" />
                         <div>
                           <p className="font-semibold">Location</p>
-                          <p>123 Culinary Street, Foodville</p>
+                          <p>Nana Mauva,Rajkot,Gujarat</p>
                         </div>
                       </div>
                     </motion.div>
