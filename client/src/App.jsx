@@ -11,28 +11,28 @@ import {
   CustomerMenu,
   KitchenStaff,
   Waiter,
-  Management
+  Management,
+  Loginpage,
 } from './pages'
 
 function App() {
-
   return (
     <Router>
-    <Routes>
-      {/* <Route path="/home" element={<Home />} /> */}
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/orders" element={<Orders />} />
-      <Route path="/menu" element={<Menu />} />
-      <Route path="/Tableqrcodes" element={<Tableqrcodes />} />
-      <Route path="/Staff" element={<Staff />} />
-      <Route path="/Reports" element={<Reports />} />
-      <Route path="/customermenu" element={<CustomerMenu />} />
-      <Route path="/kitchenstaff" element={<KitchenStaff />} />
-      <Route path="/waiter" element={<Waiter />} />
-      <Route path="/management" element={<Management />} />
-      <Route path="/customermenu/:table" element={<CustomerMenu />} />
-    </Routes>
-  </Router>
+      <Routes>
+        <Route path="/home" element={<Home />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/orders" element={<Orders />} />
+        <Route path="/menu" element={<Menu />} />
+        <Route path="/Tableqrcodes" element={<Tableqrcodes />} />
+        <Route path="/Staff" element={<Staff />} />
+        <Route path="/Reports" element={<Reports />} />
+        <Route path="/customermenu" element={<CustomerMenu />} />
+        <Route path="/kitchenstaff" element={<KitchenStaff />} />
+        <Route path="/waiter" element={<Waiter />} />
+        <Route path="/management" element={<Management />} />
+        <Route path="/loginpage" element={<Loginpage />} />
+      </Routes>
+    </Router>
   )
 }
 
