@@ -22,43 +22,30 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setLoginError(''); // Clear previous errors
-
+    setLoginError('');
+  
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch(`/api/v1/auth/login`, {  // Using proxy
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: formData.email, password: formData.password }),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          email: formData.email, 
+          password: formData.password 
+        }),
       });
-
+  
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || 'Login failed');
       }
-
+  
       const data = await response.json();
-      // Handle successful login
-      console.log('Login successful:', data);
-      localStorage.setItem('token', data.token);
       localStorage.setItem('user', JSON.stringify(data.user));
-
-      // Redirect based on role
-      if (data.user.role === 'Owner') {
-        window.location.href = '/OwnerDashboard';
-      } else if (data.user.role === 'Manager') {
-        window.location.href = '/ManagerDashboard';
-      } else if (data.user.role === 'Chef') {
-        window.location.href = '/ChefDashboard';
-      } else if (data.user.role === 'Waiter') {
-        window.location.href = '/WaiterDashboard';
-      } else {
-        window.location.href = '/';
-      }
+      window.location.href = `/${data.user.role.toLowerCase()}Dashboard`;
+  
     } catch (error) {
-      console.error('Login error:', error);
-      setLoginError(error.message);
+      setLoginError(error.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }

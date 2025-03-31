@@ -9,7 +9,7 @@ import CustomerMenu from "./CustomerMenu";
 import KitchenStaff from "./KitchenStaff";
 import Waiter from "./Waiter";
 import Management from "./Management";
-import Loginpage from "./Loginpage";
+import Loginpage from "./loginpage";
 
 
 export { Home, Dashboard, Orders, Menu, Tableqrcodes, Staff, Reports ,CustomerMenu,KitchenStaff ,Waiter,Management,Loginpage };

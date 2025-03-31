@@ -11,7 +11,20 @@ const LOCAL_MODELS = {
   "Pina Colada": "/models/mocktail.glb",
   "Veg Sandwich": "/models/sandwich.glb",
   "Croissant": "/models/crossaint.glb",
-  "Garlic Bread": "/models/garlicbread.glb"
+  "Garlic Bread": "/models/garlicbread.glb",
+  "Donut": "models/donut.glb",
+  "Coca Cola": "/models/coke.glb",
+  "Cake": "/models/cake.glb",
+  "Red Velvet Pastry": "/models/redvelvet.glb",
+  "cappuccino": "/models/coffee_cup.glb",
+  "Cold Coffee": "/models/creamed_coffee.glb",
+  "Iced Coffee": "/models/ice_coffee.glb",
+  "Loaded Nachos": "/models/nachos.glb",
+  "Veg Overloaded Pizza": "/models/Tp Pizza.glb",
+  "Red Pepperoni Pizza": "/models/red peprika.glb",
+  "Chicken Momos": "/models/momo_food.glb",
+  "Veg Momos": "/models/momo_food.glb",
+
 };
 
 const CustomerMenu = () => {
