@@ -30,6 +30,7 @@ app.use("/api/v1/tables", tableRouter);
 app.use("/api/v1/orders", orderRoutes);
 app.use('/api/v1/reports', reportRoutes);
 
+
 // Test Route
 app.get("/", (req, res) => {
   res.send("⚙️ QRCode Backend Server is Running");
