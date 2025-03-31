@@ -13,6 +13,7 @@ import menuRouter from "./routes/menu.routes.js";
 import tableRouter from "./routes/table.routes.js";
 import orderRoutes from "./routes/order.routes.js";
 import reportRoutes from './routes/report.routes.js';
+import authRouter from "./routes/auth.routes.js";
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 // Routes
+app.use('/api/v1/auth', authRouter); 
 app.use("/api/v1/images", imagekitRouter);
 app.use("/api/v1/restaurants", restaurantRouter);
 app.use("/api/v1/users", userRouter);

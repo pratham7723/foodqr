@@ -8,12 +8,12 @@ config({
 // Add JWT_SECRET to your environment variables
 export const {
   NODE_ENV = "development",
-  MONGO_URI = "mongodb://127.0.0.1:27017/restaurantDB",
-  CLIENT_URL = "http://localhost:5173",
-  SERVER_URL = "http://localhost:3000",
-  PORT = 3000,
+  MONGO_URI,
+  CLIENT_URL,
+  SERVER_URL,
+  PORT,
   IMAGEKIT_PUBLIC_KEY,
   IMAGEKIT_PRIVATE_KEY,
   IMAGEKIT_URL_ENDPOINT,
-  JWT_SECRET = "your-strong-default-secret-change-this", // Add this line
+  JWT_SECRET,
 } = process.env;
